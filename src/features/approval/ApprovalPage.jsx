@@ -464,14 +464,14 @@ export default function ApprovalPage() {
             </Card>
           ) : (
             <Card>
-              <CardHeader className="flex items-center justify-between">
+              <CardHeader className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <h3 className="font-semibold">
                     {formatRemesaNumber(selectedRemesa.remesa_number, selectedRemesa.remesa_suffix)}
                   </h3>
                   <p className="text-xs text-gray-500">{formatDateShort(selectedRemesa.date)}</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <input
                     type="date"
                     value={paymentDate}
@@ -490,7 +490,7 @@ export default function ApprovalPage() {
                 </div>
               </CardHeader>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm min-w-[500px]">
                   <thead>
                     <tr className="bg-gray-50 border-b">
                       <th className="px-3 py-2 text-left w-16">#</th>

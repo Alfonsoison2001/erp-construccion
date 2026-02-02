@@ -12,8 +12,11 @@ import {
   LogOut,
   Building2,
   ChevronDown,
+  Menu,
+  X,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 const DEMO_MODE = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'https://your-project.supabase.co'
@@ -38,7 +41,14 @@ export default function Layout({ children }) {
   const { currentProject, setCurrentProject } = useProject()
   const [projects, setProjects] = useState([])
   const [showProjectMenu, setShowProjectMenu] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
+
+  // Auto-close sidebar on navigation
+  useEffect(() => {
+    setSidebarOpen(false)
+  }, [location.pathname])
 
   useEffect(() => {
     loadProjects()
@@ -74,8 +84,16 @@ export default function Layout({ children }) {
 
   return (
     <div className="flex h-screen">
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-sidebar flex flex-col shrink-0">
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar flex flex-col shrink-0 transform transition-transform duration-200 ease-in-out lg:relative lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="px-5 py-5 border-b border-green-900/30">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
@@ -85,6 +103,13 @@ export default function Layout({ children }) {
               <h1 className="text-sm font-semibold text-white">ERP Construcción</h1>
               <p className="text-xs text-gray-400">Presupuestos & Remesas</p>
             </div>
+            {/* Close button on mobile */}
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="ml-auto p-1 text-gray-400 hover:text-white lg:hidden"
+            >
+              <X size={20} />
+            </button>
           </div>
         </div>
 
@@ -126,45 +151,55 @@ export default function Layout({ children }) {
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0">
-          <div className="relative">
+        <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-3 sm:px-6 shrink-0">
+          <div className="flex items-center gap-2">
+            {/* Hamburger button — mobile only */}
             <button
-              onClick={() => setShowProjectMenu(!showProjectMenu)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors text-sm"
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 rounded-lg hover:bg-gray-100 lg:hidden"
             >
-              <FolderKanban size={16} className="text-gray-400" />
-              <span className="font-medium">
-                {currentProject?.name || 'Seleccionar proyecto'}
-              </span>
-              <ChevronDown size={14} className="text-gray-400" />
+              <Menu size={20} className="text-gray-600" />
             </button>
 
-            {showProjectMenu && (
-              <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                {projects.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => {
-                      setCurrentProject(p)
-                      setShowProjectMenu(false)
-                    }}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
-                      currentProject?.id === p.id ? 'text-primary font-medium' : 'text-gray-700'
-                    }`}
-                  >
-                    {p.name}
-                  </button>
-                ))}
-                {projects.length === 0 && (
-                  <p className="px-4 py-2 text-sm text-gray-500">Sin proyectos</p>
-                )}
-              </div>
-            )}
+            <div className="relative">
+              <button
+                onClick={() => setShowProjectMenu(!showProjectMenu)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors text-sm"
+              >
+                <FolderKanban size={16} className="text-gray-400" />
+                <span className="font-medium">
+                  {currentProject?.name || 'Seleccionar proyecto'}
+                </span>
+                <ChevronDown size={14} className="text-gray-400" />
+              </button>
+
+              {showProjectMenu && (
+                <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                  {projects.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        setCurrentProject(p)
+                        setShowProjectMenu(false)
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
+                        currentProject?.id === p.id ? 'text-primary font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      {p.name}
+                    </button>
+                  ))}
+                  {projects.length === 0 && (
+                    <p className="px-4 py-2 text-sm text-gray-500">Sin proyectos</p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6">
           {children}
         </main>
       </div>

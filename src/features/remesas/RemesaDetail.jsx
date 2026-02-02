@@ -34,7 +34,7 @@ export default function RemesaDetail() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/remesas')} className="p-2 hover:bg-gray-100 rounded-lg">
             <ArrowLeft size={20} />
@@ -51,7 +51,7 @@ export default function RemesaDetail() {
             </p>
           </div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <RemesaExport remesa={remesa} items={items} />
           <Button variant="secondary" onClick={() => navigate(`/remesas/${id}/editar`)}>
             <Pencil size={16} /> Editar
@@ -123,7 +123,7 @@ function SectionCard({ title, items, total, section }) {
         <h3 className="font-semibold">{title}</h3>
       </CardHeader>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm min-w-[700px]">
           <thead>
             <tr className="bg-gray-50 border-b">
               <th className="px-4 py-2 text-left w-16">#</th>

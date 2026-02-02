@@ -308,11 +308,11 @@ export default function RemesaForm() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
           {id ? 'Editar Remesa' : 'Nueva Remesa'}
         </h1>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <Button variant="secondary" onClick={() => navigate('/remesas')}>Cancelar</Button>
           <Button variant="secondary" onClick={() => handleSave(false)} disabled={saving}>
             <Save size={16} /> {saving ? 'Guardando...' : 'Guardar Borrador'}
@@ -390,7 +390,7 @@ function SectionTable({ title, section, items, total, categories, contractors, v
         </Button>
       </CardHeader>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm min-w-[900px]">
           <thead>
             <tr className="bg-gray-50 border-b">
               <th className="px-2 py-2 text-left font-medium text-gray-500 w-12">#</th>
