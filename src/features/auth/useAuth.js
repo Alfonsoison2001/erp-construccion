@@ -3,8 +3,16 @@ import { supabase } from '../../lib/supabase'
 
 const DEMO_MODE = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'https://your-project.supabase.co'
 
-const DEMO_USER = { id: 'demo-user', email: 'admin@demo.com' }
-const DEMO_PROFILE = { id: 'demo-user', full_name: 'Admin Demo', role: 'admin' }
+const DEMO_USERS = {
+  admin: {
+    user: { id: 'demo-user', email: 'admin@demo.com' },
+    profile: { id: 'demo-user', full_name: 'Admin Demo', role: 'admin' }
+  },
+  residente: {
+    user: { id: 'demo-residente', email: 'residente@test.com' },
+    profile: { id: 'demo-residente', full_name: 'Residente Demo', role: 'residente' }
+  }
+}
 
 export function useAuth() {
   const [user, setUser] = useState(null)
@@ -12,7 +20,7 @@ export function useAuth() {
   const [loading, setLoading] = useState(true)
 
   const fetchProfile = useCallback(async (userId) => {
-    if (DEMO_MODE) return DEMO_PROFILE
+    if (DEMO_MODE) return DEMO_USERS.admin.profile
     const { data } = await supabase
       .from('profiles')
       .select('*')
@@ -59,8 +67,9 @@ export function useAuth() {
 
   const signIn = async (email, password) => {
     if (DEMO_MODE) {
-      setUser(DEMO_USER)
-      setProfile(DEMO_PROFILE)
+      const demoKey = email === 'residente@test.com' ? 'residente' : 'admin'
+      setUser(DEMO_USERS[demoKey].user)
+      setProfile(DEMO_USERS[demoKey].profile)
       return
     }
     const { error } = await supabase.auth.signInWithPassword({ email, password })

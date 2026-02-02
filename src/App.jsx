@@ -10,6 +10,7 @@ import BudgetPage from './features/budget/BudgetPage'
 import RemesasPage from './features/remesas/RemesasPage'
 import RemesaForm from './features/remesas/RemesaForm'
 import RemesaDetail from './features/remesas/RemesaDetail'
+import ProveedoresPage from './features/proveedores/ProveedoresPage'
 import ApprovalPage from './features/approval/ApprovalPage'
 import SettingsPage from './features/settings/SettingsPage'
 
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="/remesas/nueva" element={<AppLayout><RemesaForm /></AppLayout>} />
           <Route path="/remesas/:id" element={<AppLayout><RemesaDetail /></AppLayout>} />
           <Route path="/remesas/:id/editar" element={<AppLayout><RemesaForm /></AppLayout>} />
+          <Route path="/proveedores" element={<AppLayout><ProveedoresPage /></AppLayout>} />
           <Route path="/aprobacion" element={<AdminRoute><ApprovalPage /></AdminRoute>} />
           <Route path="/configuracion" element={<AdminRoute><SettingsPage /></AdminRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />

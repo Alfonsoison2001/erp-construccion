@@ -80,6 +80,46 @@ export default function LoginPage() {
               {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
             </button>
           </form>
+
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <p className="text-xs text-gray-400 text-center mb-3">Acceso rápido demo</p>
+            <div className="flex gap-3">
+              <button
+                onClick={async () => {
+                  setLoading(true)
+                  try {
+                    await signIn('admin@demo.com', 'demo')
+                    navigate('/')
+                  } catch (err) {
+                    setError(err.message)
+                  } finally {
+                    setLoading(false)
+                  }
+                }}
+                disabled={loading}
+                className="flex-1 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium py-2 px-3 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Entrar como Admin
+              </button>
+              <button
+                onClick={async () => {
+                  setLoading(true)
+                  try {
+                    await signIn('residente@test.com', 'demo')
+                    navigate('/')
+                  } catch (err) {
+                    setError(err.message)
+                  } finally {
+                    setLoading(false)
+                  }
+                }}
+                disabled={loading}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Entrar como Residente
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -34,22 +34,24 @@ export default function DashboardPage() {
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
 
-      {/* Summary cards - only for admin */}
-      {isAdmin && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      {/* Summary cards */}
+      <div className={`grid grid-cols-1 ${isAdmin ? 'md:grid-cols-3' : 'md:grid-cols-1 max-w-sm'} gap-4 mb-8`}>
+        {isAdmin && (
           <SummaryCard
             icon={DollarSign}
             label="Presupuesto Total"
             value={formatCurrency(totalBudget)}
             color="primary"
           />
-          <SummaryCard
-            icon={TrendingUp}
-            label="Pagado"
-            value={formatCurrency(totalPaid)}
-            subtitle={formatPercent(progress)}
-            color="success"
-          />
+        )}
+        <SummaryCard
+          icon={TrendingUp}
+          label="Total Pagado"
+          value={formatCurrency(totalPaid)}
+          subtitle={isAdmin ? formatPercent(progress) : undefined}
+          color="success"
+        />
+        {isAdmin && (
           <SummaryCard
             icon={Clock}
             label="Pendiente"
@@ -57,14 +59,16 @@ export default function DashboardPage() {
             subtitle={formatPercent(100 - progress)}
             color="warning"
           />
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Budget vs Paid table - only for admin */}
-      {isAdmin && categories.length > 0 && (
+      {/* Budget vs Paid table - admin sees full, residente sees only paid */}
+      {categories.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Presupuesto vs Pagado</h2>
-          <BudgetVsPaid categories={categories} totalBudget={totalBudget} totalPaid={totalPaid} />
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            {isAdmin ? 'Presupuesto vs Pagado' : 'Pagado por Categoría'}
+          </h2>
+          <BudgetVsPaid categories={categories} totalBudget={totalBudget} totalPaid={totalPaid} isAdmin={isAdmin} />
         </div>
       )}
 

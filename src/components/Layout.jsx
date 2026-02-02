@@ -6,6 +6,7 @@ import {
   FolderKanban,
   FileSpreadsheet,
   Receipt,
+  Users,
   CheckCircle,
   Settings,
   LogOut,
@@ -27,6 +28,7 @@ const navItems = [
   { to: '/proyectos', icon: FolderKanban, label: 'Proyectos' },
   { to: '/presupuesto', icon: FileSpreadsheet, label: 'Presupuesto', adminOnly: true },
   { to: '/remesas', icon: Receipt, label: 'Remesas' },
+  { to: '/proveedores', icon: Users, label: 'Proveedores' },
   { to: '/aprobacion', icon: CheckCircle, label: 'Aprobación', adminOnly: true },
   { to: '/configuracion', icon: Settings, label: 'Configuración', adminOnly: true },
 ]

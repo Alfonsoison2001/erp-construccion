@@ -339,7 +339,185 @@ export function useBudget(projectId) {
     return acc
   }, {})
 
+  const addItem = async (itemData) => {
+    if (DEMO_MODE) {
+      const id = 'bi-demo-' + Date.now()
+      const newItem = {
+        id,
+        project_id: projectId,
+        category_id: itemData.category_id,
+        concept_id: itemData.concept_id,
+        categories: { id: itemData.category_id, name: itemData.category_name },
+        concepts: { id: itemData.concept_id, name: itemData.concept_name },
+        detail: itemData.detail || '',
+        supplier: itemData.supplier || '',
+        unit: itemData.unit || '',
+        quantity: itemData.quantity || 0,
+        currency: itemData.currency || 'MXN',
+        unit_price: itemData.unit_price || 0,
+        subtotal: itemData.subtotal || 0,
+        surcharge_pct: itemData.surcharge_pct || 0,
+        surcharge_amount: itemData.surcharge_amount || 0,
+        vat_pct: itemData.vat_pct || 0,
+        vat_amount: itemData.vat_amount || 0,
+        total: itemData.total || 0,
+        exchange_rate: itemData.exchange_rate || 1,
+        total_mxn: itemData.total_mxn || 0,
+        notes: itemData.notes || '',
+      }
+      setItems(prev => [...prev, newItem])
+      return newItem
+    }
+
+    const row = {
+      project_id: projectId,
+      category_id: itemData.category_id,
+      concept_id: itemData.concept_id,
+      detail: itemData.detail || null,
+      supplier: itemData.supplier || null,
+      unit: itemData.unit || null,
+      quantity: itemData.quantity || 0,
+      currency: itemData.currency || 'MXN',
+      unit_price: itemData.unit_price || 0,
+      subtotal: itemData.subtotal || 0,
+      surcharge_pct: itemData.surcharge_pct || 0,
+      surcharge_amount: itemData.surcharge_amount || 0,
+      vat_pct: itemData.vat_pct || 0,
+      vat_amount: itemData.vat_amount || 0,
+      total: itemData.total || 0,
+      exchange_rate: itemData.exchange_rate || 1,
+      total_mxn: itemData.total_mxn || 0,
+      notes: itemData.notes || null,
+    }
+    const { error } = await supabase.from('budget_items').insert(row)
+    if (error) throw error
+    await fetchItems()
+  }
+
+  const addCategory = async (name) => {
+    if (DEMO_MODE) {
+      const id = 'cat-demo-' + Date.now()
+      const placeholder = {
+        id: 'bi-placeholder-' + Date.now(),
+        project_id: projectId,
+        category_id: id,
+        concept_id: null,
+        categories: { id, name },
+        concepts: null,
+        detail: '',
+        supplier: '',
+        unit: '',
+        quantity: 0,
+        currency: 'MXN',
+        unit_price: 0,
+        subtotal: 0,
+        surcharge_pct: 0,
+        surcharge_amount: 0,
+        vat_pct: 0,
+        vat_amount: 0,
+        total: 0,
+        exchange_rate: 1,
+        total_mxn: 0,
+        notes: '',
+        _placeholder: true,
+      }
+      setItems(prev => [...prev, placeholder])
+      return { id, name }
+    }
+
+    const { data, error } = await supabase
+      .from('categories')
+      .insert({ project_id: projectId, name })
+      .select('id, name')
+      .single()
+    if (error) throw error
+    return data
+  }
+
+  const addConcept = async (categoryId, categoryName, name) => {
+    if (DEMO_MODE) {
+      const id = 'con-demo-' + Date.now()
+      const placeholder = {
+        id: 'bi-placeholder-' + Date.now(),
+        project_id: projectId,
+        category_id: categoryId,
+        concept_id: id,
+        categories: { id: categoryId, name: categoryName },
+        concepts: { id, name },
+        detail: '',
+        supplier: '',
+        unit: '',
+        quantity: 0,
+        currency: 'MXN',
+        unit_price: 0,
+        subtotal: 0,
+        surcharge_pct: 0,
+        surcharge_amount: 0,
+        vat_pct: 0,
+        vat_amount: 0,
+        total: 0,
+        exchange_rate: 1,
+        total_mxn: 0,
+        notes: '',
+        _placeholder: true,
+      }
+      // Remove existing placeholder for this category if it has no concept
+      setItems(prev => {
+        const filtered = prev.filter(i => !(i._placeholder && i.category_id === categoryId && !i.concept_id))
+        return [...filtered, placeholder]
+      })
+      return { id, name }
+    }
+
+    const { data, error } = await supabase
+      .from('concepts')
+      .insert({ category_id: categoryId, name })
+      .select('id, name')
+      .single()
+    if (error) throw error
+    return data
+  }
+
+  const updateCategory = async (categoryId, name) => {
+    if (DEMO_MODE) {
+      setItems(prev => prev.map(item =>
+        item.category_id === categoryId
+          ? { ...item, categories: { ...item.categories, name } }
+          : item
+      ))
+      return
+    }
+    const { error } = await supabase
+      .from('categories')
+      .update({ name })
+      .eq('id', categoryId)
+    if (error) throw error
+    await fetchItems()
+  }
+
+  const updateConcept = async (conceptId, name) => {
+    if (DEMO_MODE) {
+      setItems(prev => prev.map(item =>
+        item.concept_id === conceptId
+          ? { ...item, concepts: { ...item.concepts, name } }
+          : item
+      ))
+      return
+    }
+    const { error } = await supabase
+      .from('concepts')
+      .update({ name })
+      .eq('id', conceptId)
+    if (error) throw error
+    await fetchItems()
+  }
+
   const grandTotal = items.reduce((sum, i) => sum + (Number(i.total_mxn) || 0), 0)
 
-  return { items, grouped, grandTotal, loading, importBatch, updateItem, deleteItem, refresh: fetchItems }
+  return {
+    items, grouped, grandTotal, loading,
+    importBatch, updateItem, deleteItem, addItem,
+    addCategory, addConcept, updateCategory, updateConcept,
+    refresh: fetchItems,
+  }
 }
