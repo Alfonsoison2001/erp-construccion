@@ -244,6 +244,7 @@ export default function RemesaForm() {
           date: form.date,
           week_description: form.week_description,
           remesa_suffix: form.remesa_suffix,
+          total_amount: grandTotal,
         })
         currentRemesaId = newRemesa.id
         setRemesaId(currentRemesaId)
@@ -252,6 +253,7 @@ export default function RemesaForm() {
           date: form.date,
           week_description: form.week_description,
           remesa_suffix: form.remesa_suffix,
+          total_amount: grandTotal,
         }).eq('id', currentRemesaId)
       }
 
@@ -261,7 +263,7 @@ export default function RemesaForm() {
       const allItems = [
         ...itemsA.map((item, idx) => ({ ...item, section: 'A', line_number: idx + 1, remesa_id: currentRemesaId })),
         ...itemsB.map((item, idx) => ({ ...item, section: 'B', line_number: idx + 1, remesa_id: currentRemesaId })),
-      ].filter(item => item.description)
+      ].filter(item => item.description || item.contractor_name || parseFloat(item.total) > 0)
         .map(({ id: _id, ...item }) => ({
           remesa_id: item.remesa_id,
           section: item.section,
