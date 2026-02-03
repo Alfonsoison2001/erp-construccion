@@ -329,101 +329,329 @@ export function exportRemesaToExcel(remesa, items, project, getBudgetInfo) {
   const sectionA = items.filter(i => i.section === 'A').sort((a, b) => a.line_number - b.line_number)
   const sectionB = items.filter(i => i.section === 'B').sort((a, b) => a.line_number - b.line_number)
 
+  // Style definitions
+  const styles = {
+    title: {
+      font: { bold: true, sz: 16, color: { rgb: '1F4E79' } },
+      alignment: { horizontal: 'left' }
+    },
+    remesaNumber: {
+      font: { bold: true, sz: 18, color: { rgb: 'FFFFFF' } },
+      fill: { patternType: 'solid', fgColor: { rgb: '1F4E79' } },
+      alignment: { horizontal: 'center', vertical: 'center' }
+    },
+    dateLabel: {
+      font: { bold: true, sz: 11, color: { rgb: '1F4E79' } },
+      alignment: { horizontal: 'right' }
+    },
+    dateValue: {
+      font: { bold: true, sz: 12, color: { rgb: '000000' } },
+      alignment: { horizontal: 'left' }
+    },
+    subtitle: {
+      font: { bold: true, sz: 11, color: { rgb: '1F4E79' } },
+      alignment: { horizontal: 'left' }
+    },
+    columnHeader: {
+      font: { bold: true, sz: 10, color: { rgb: 'FFFFFF' } },
+      fill: { patternType: 'solid', fgColor: { rgb: '2E75B6' } },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+      border: {
+        top: { style: 'thin', color: { rgb: '000000' } },
+        bottom: { style: 'thin', color: { rgb: '000000' } },
+        left: { style: 'thin', color: { rgb: '000000' } },
+        right: { style: 'thin', color: { rgb: '000000' } }
+      }
+    },
+    // Section A - Transferencias: Azul
+    sectionHeaderA: {
+      font: { bold: true, sz: 11, color: { rgb: 'FFFFFF' } },
+      fill: { patternType: 'solid', fgColor: { rgb: '2E75B6' } },
+      alignment: { horizontal: 'left' }
+    },
+    // Section B - Cheques/Efectivo: Verde
+    sectionHeaderB: {
+      font: { bold: true, sz: 11, color: { rgb: 'FFFFFF' } },
+      fill: { patternType: 'solid', fgColor: { rgb: '538135' } },
+      alignment: { horizontal: 'left' }
+    },
+    dataCell: {
+      font: { sz: 10 },
+      border: {
+        top: { style: 'thin', color: { rgb: 'D9D9D9' } },
+        bottom: { style: 'thin', color: { rgb: 'D9D9D9' } },
+        left: { style: 'thin', color: { rgb: 'D9D9D9' } },
+        right: { style: 'thin', color: { rgb: 'D9D9D9' } }
+      },
+      alignment: { vertical: 'center' }
+    },
+    dataCellRight: {
+      font: { sz: 10 },
+      border: {
+        top: { style: 'thin', color: { rgb: 'D9D9D9' } },
+        bottom: { style: 'thin', color: { rgb: 'D9D9D9' } },
+        left: { style: 'thin', color: { rgb: 'D9D9D9' } },
+        right: { style: 'thin', color: { rgb: 'D9D9D9' } }
+      },
+      alignment: { horizontal: 'right', vertical: 'center' },
+      numFmt: '"$"#,##0.00'
+    },
+    availablePositive: {
+      font: { sz: 10, color: { rgb: '006400' } },
+      border: {
+        top: { style: 'thin', color: { rgb: 'D9D9D9' } },
+        bottom: { style: 'thin', color: { rgb: 'D9D9D9' } },
+        left: { style: 'thin', color: { rgb: 'D9D9D9' } },
+        right: { style: 'thin', color: { rgb: 'D9D9D9' } }
+      },
+      alignment: { horizontal: 'right', vertical: 'center' },
+      numFmt: '"$"#,##0.00'
+    },
+    availableNegative: {
+      font: { sz: 10, color: { rgb: 'CC0000' } },
+      border: {
+        top: { style: 'thin', color: { rgb: 'D9D9D9' } },
+        bottom: { style: 'thin', color: { rgb: 'D9D9D9' } },
+        left: { style: 'thin', color: { rgb: 'D9D9D9' } },
+        right: { style: 'thin', color: { rgb: 'D9D9D9' } }
+      },
+      alignment: { horizontal: 'right', vertical: 'center' },
+      numFmt: '"$"#,##0.00'
+    },
+    // Subtotal Section A - Azul claro
+    subtotalRowA: {
+      font: { bold: true, sz: 10 },
+      fill: { patternType: 'solid', fgColor: { rgb: 'DEEAF6' } },
+      alignment: { horizontal: 'right' },
+      numFmt: '"$"#,##0.00'
+    },
+    subtotalLabelA: {
+      font: { bold: true, sz: 10 },
+      fill: { patternType: 'solid', fgColor: { rgb: 'DEEAF6' } },
+      alignment: { horizontal: 'right' }
+    },
+    // Subtotal Section B - Verde claro
+    subtotalRowB: {
+      font: { bold: true, sz: 10 },
+      fill: { patternType: 'solid', fgColor: { rgb: 'E2EFDA' } },
+      alignment: { horizontal: 'right' },
+      numFmt: '"$"#,##0.00'
+    },
+    subtotalLabelB: {
+      font: { bold: true, sz: 10 },
+      fill: { patternType: 'solid', fgColor: { rgb: 'E2EFDA' } },
+      alignment: { horizontal: 'right' }
+    },
+    grandTotal: {
+      font: { bold: true, sz: 12, color: { rgb: 'FFFFFF' } },
+      fill: { patternType: 'solid', fgColor: { rgb: '1F4E79' } },
+      alignment: { horizontal: 'right' },
+      numFmt: '"$"#,##0.00'
+    },
+    grandTotalLabel: {
+      font: { bold: true, sz: 12, color: { rgb: 'FFFFFF' } },
+      fill: { patternType: 'solid', fgColor: { rgb: '1F4E79' } },
+      alignment: { horizontal: 'right' }
+    },
+    amountInWords: {
+      font: { italic: true, sz: 10, color: { rgb: '666666' } },
+      alignment: { horizontal: 'left' }
+    }
+  }
+
   const rows = []
+  const rowStyles = [] // Track which style to apply to each row
 
-  // Header
-  rows.push([])
-  rows.push(['', project?.name || ''])
-  rows.push(['', project?.owner_name || '', '', '', '', '', '', `Remesa ${String(remesa.remesa_number).padStart(2, '0')} ${remesa.remesa_suffix}`])
-  rows.push(['', '', '', '', '', '', '', remesa.date])
-  rows.push(['', '', '', '', '', '', '', remesa.week_description || ''])
-  rows.push([])
+  // Format date nicely
+  const formattedDate = remesa.date ? new Date(remesa.date + 'T12:00:00').toLocaleDateString('es-MX', {
+    day: '2-digit', month: 'long', year: 'numeric'
+  }) : ''
 
-  // Column headers
-  rows.push([
+  // Header rows - Prominently show Remesa number and Date
+  rows.push([]) // Row 0
+  rowStyles.push(null)
+
+  // Row 1: REMESA NUMBER (big, prominent)
+  const remesaNumRow = new Array(16).fill('')
+  remesaNumRow[0] = { v: `REMESA ${String(remesa.remesa_number).padStart(2, '0')} ${remesa.remesa_suffix}`, s: styles.remesaNumber }
+  remesaNumRow[1] = { v: '', s: styles.remesaNumber }
+  remesaNumRow[2] = { v: '', s: styles.remesaNumber }
+  rows.push(remesaNumRow)
+  rowStyles.push('remesaNum')
+
+  // Row 2: DATE (prominent)
+  const dateRow = new Array(16).fill('')
+  dateRow[0] = { v: 'FECHA:', s: styles.dateLabel }
+  dateRow[1] = { v: formattedDate, s: styles.dateValue }
+  dateRow[4] = { v: remesa.week_description || '', s: styles.subtitle }
+  rows.push(dateRow)
+  rowStyles.push('date')
+
+  rows.push([]) // Row 3 - spacer
+  rowStyles.push(null)
+
+  // Row 4: Project info
+  rows.push([{ v: project?.name || '', s: styles.title }])
+  rowStyles.push('title')
+
+  rows.push([{ v: project?.owner_name || '', s: styles.subtitle }])
+  rowStyles.push('subtitle')
+
+  rows.push([]) // Row 6 - spacer
+  rowStyles.push(null)
+
+  // Column headers - Row 6
+  const headerRow = [
     '#', 'CATEGORÍA', 'CONCEPTO', 'NOMBRE CONTRATISTA', 'PARTIDA',
     'IMPORTE', 'IVA', 'TOTAL', 'PRESUPUESTO', 'PAGADO', 'DISPONIBLE',
-    'TIPO DE PAGO', 'BANCO',
-    'No. DE CUENTA', 'CLABE INTERBANCARIA', 'NOTAS'
-  ])
+    'TIPO DE PAGO', 'BANCO', 'No. DE CUENTA', 'CLABE INTERBANCARIA', 'NOTAS'
+  ].map(h => ({ v: h, s: styles.columnHeader }))
+  rows.push(headerRow)
+  rowStyles.push('header')
 
-  rows.push([])
+  rows.push([]) // Row 7 - spacer
+  rowStyles.push(null)
 
-  // Section A header
-  rows.push(['', 'A. TRANSFERENCIAS BANCARIAS'])
+  // Section A header - Transferencias (Azul)
+  const sectionAHeaderRow = new Array(16).fill('')
+  sectionAHeaderRow[0] = { v: 'A', s: styles.sectionHeaderA }
+  sectionAHeaderRow[1] = { v: 'TRANSFERENCIAS BANCARIAS', s: styles.sectionHeaderA }
+  rows.push(sectionAHeaderRow)
+  rowStyles.push('sectionHeader')
 
+  // Section A items
   let totalA = 0
   sectionA.forEach((item, idx) => {
     totalA += Number(item.total) || 0
     const info = getBudgetInfo ? getBudgetInfo(item.category_id, item.concept_id) : null
+    const availableStyle = info ? (info.available >= 0 ? styles.availablePositive : styles.availableNegative) : styles.dataCellRight
+
     rows.push([
-      `A.${String(idx + 1).padStart(2, '0')}`,
-      item.category_name || '',
-      item.concept_name || '',
-      item.contractor_name || '',
-      item.description || '',
-      Number(item.amount) || 0,
-      Number(item.vat_amount) || 0,
-      Number(item.total) || 0,
-      info ? info.budget_total : '',
-      info ? info.paid_total : '',
-      info ? info.available : '',
-      item.payment_type || 'transferencia',
-      item.bank || '',
-      item.account_number || '',
-      item.clabe || '',
-      item.notes || ''
+      { v: `A.${String(idx + 1).padStart(2, '0')}`, s: styles.dataCell },
+      { v: item.category_name || '', s: styles.dataCell },
+      { v: item.concept_name || '', s: styles.dataCell },
+      { v: item.contractor_name || '', s: styles.dataCell },
+      { v: item.description || '', s: styles.dataCell },
+      { v: Number(item.amount) || 0, t: 'n', s: styles.dataCellRight },
+      { v: Number(item.vat_amount) || 0, t: 'n', s: styles.dataCellRight },
+      { v: Number(item.total) || 0, t: 'n', s: styles.dataCellRight },
+      info ? { v: Number(info.budget_total) || 0, t: 'n', s: styles.dataCellRight } : { v: '', s: styles.dataCell },
+      info ? { v: Number(info.paid_total) || 0, t: 'n', s: styles.dataCellRight } : { v: '', s: styles.dataCell },
+      info ? { v: Number(info.available) || 0, t: 'n', s: availableStyle } : { v: '', s: styles.dataCell },
+      { v: item.payment_type || 'transferencia', s: styles.dataCell },
+      { v: item.bank || '', s: styles.dataCell },
+      { v: item.account_number || '', s: styles.dataCell },
+      { v: item.clabe || '', s: styles.dataCell },
+      { v: item.notes || '', s: styles.dataCell }
     ])
+    rowStyles.push('data')
   })
 
-  rows.push(['', '', '', '', 'TOTAL:', '', '', totalA])
-  rows.push([])
+  // Section A total (Azul claro)
+  const totalARow = new Array(16).fill({ v: '', s: styles.subtotalRowA })
+  totalARow[4] = { v: 'SUBTOTAL SECCIÓN A:', s: styles.subtotalLabelA }
+  totalARow[7] = { v: totalA, t: 'n', s: styles.subtotalRowA }
+  rows.push(totalARow)
+  rowStyles.push('subtotal')
 
-  // Section B header
-  rows.push(['', 'B. CHEQUES / EFECTIVO'])
+  rows.push([]) // spacer
+  rowStyles.push(null)
 
+  // Section B header - Cheques/Efectivo (Verde)
+  const sectionBHeaderRow = new Array(16).fill('')
+  sectionBHeaderRow[0] = { v: 'B', s: styles.sectionHeaderB }
+  sectionBHeaderRow[1] = { v: 'CHEQUES / EFECTIVO', s: styles.sectionHeaderB }
+  rows.push(sectionBHeaderRow)
+  rowStyles.push('sectionHeader')
+
+  // Section B items
   let totalB = 0
   sectionB.forEach((item, idx) => {
     totalB += Number(item.total) || 0
     const info = getBudgetInfo ? getBudgetInfo(item.category_id, item.concept_id) : null
+    const availableStyle = info ? (info.available >= 0 ? styles.availablePositive : styles.availableNegative) : styles.dataCellRight
+
     rows.push([
-      `B.${String(idx + 1).padStart(2, '0')}`,
-      item.category_name || '',
-      item.concept_name || '',
-      item.contractor_name || '',
-      item.description || '',
-      Number(item.amount) || 0,
-      Number(item.vat_amount) || 0,
-      Number(item.total) || 0,
-      info ? info.budget_total : '',
-      info ? info.paid_total : '',
-      info ? info.available : '',
-      item.payment_type || '',
-      item.bank || '',
-      item.account_number || '',
-      item.clabe || '',
-      item.notes || ''
+      { v: `B.${String(idx + 1).padStart(2, '0')}`, s: styles.dataCell },
+      { v: item.category_name || '', s: styles.dataCell },
+      { v: item.concept_name || '', s: styles.dataCell },
+      { v: item.contractor_name || '', s: styles.dataCell },
+      { v: item.description || '', s: styles.dataCell },
+      { v: Number(item.amount) || 0, t: 'n', s: styles.dataCellRight },
+      { v: Number(item.vat_amount) || 0, t: 'n', s: styles.dataCellRight },
+      { v: Number(item.total) || 0, t: 'n', s: styles.dataCellRight },
+      info ? { v: Number(info.budget_total) || 0, t: 'n', s: styles.dataCellRight } : { v: '', s: styles.dataCell },
+      info ? { v: Number(info.paid_total) || 0, t: 'n', s: styles.dataCellRight } : { v: '', s: styles.dataCell },
+      info ? { v: Number(info.available) || 0, t: 'n', s: availableStyle } : { v: '', s: styles.dataCell },
+      { v: item.payment_type || '', s: styles.dataCell },
+      { v: item.bank || '', s: styles.dataCell },
+      { v: item.account_number || '', s: styles.dataCell },
+      { v: item.clabe || '', s: styles.dataCell },
+      { v: item.notes || '', s: styles.dataCell }
     ])
+    rowStyles.push('data')
   })
 
-  rows.push(['', '', '', '', 'TOTAL:', '', '', totalB])
-  rows.push([])
+  // Section B total (Verde claro)
+  const totalBRow = new Array(16).fill({ v: '', s: styles.subtotalRowB })
+  totalBRow[4] = { v: 'SUBTOTAL SECCIÓN B:', s: styles.subtotalLabelB }
+  totalBRow[7] = { v: totalB, t: 'n', s: styles.subtotalRowB }
+  rows.push(totalBRow)
+  rowStyles.push('subtotal')
+
+  rows.push([]) // spacer
+  rowStyles.push(null)
 
   // Grand total
   const grandTotal = totalA + totalB
-  rows.push(['', '', '', '', 'TOTAL GENERAL:', '', '', grandTotal])
-  rows.push([])
-  rows.push(['', numberToWords(grandTotal)])
+  const grandTotalRow = new Array(16).fill({ v: '', s: styles.grandTotal })
+  grandTotalRow[4] = { v: 'TOTAL GENERAL:', s: styles.grandTotalLabel }
+  grandTotalRow[7] = { v: grandTotal, t: 'n', s: styles.grandTotal }
+  rows.push(grandTotalRow)
+  rowStyles.push('grandTotal')
+
+  rows.push([]) // spacer
+  rowStyles.push(null)
+
+  // Amount in words
+  rows.push([{ v: '', s: {} }, { v: numberToWords(grandTotal), s: styles.amountInWords }])
+  rowStyles.push('words')
 
   const ws = XLSX.utils.aoa_to_sheet(rows)
 
   // Set column widths
   ws['!cols'] = [
-    { wch: 6 }, { wch: 22 }, { wch: 22 }, { wch: 25 }, { wch: 30 },
-    { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 },
-    { wch: 14 }, { wch: 15 },
-    { wch: 16 }, { wch: 20 }, { wch: 20 }
+    { wch: 7 },   // #
+    { wch: 20 },  // Categoría
+    { wch: 20 },  // Concepto
+    { wch: 25 },  // Contratista
+    { wch: 30 },  // Partida
+    { wch: 14 },  // Importe
+    { wch: 12 },  // IVA
+    { wch: 14 },  // Total
+    { wch: 14 },  // Presupuesto
+    { wch: 14 },  // Pagado
+    { wch: 14 },  // Disponible
+    { wch: 14 },  // Tipo de pago
+    { wch: 15 },  // Banco
+    { wch: 16 },  // No. Cuenta
+    { wch: 20 },  // CLABE
+    { wch: 20 }   // Notas
   ]
+
+  // Set row heights
+  ws['!rows'] = rows.map((_, idx) => {
+    if (rowStyles[idx] === 'remesaNum') return { hpt: 28 }
+    if (rowStyles[idx] === 'date') return { hpt: 22 }
+    if (rowStyles[idx] === 'header') return { hpt: 30 }
+    if (rowStyles[idx] === 'sectionHeader') return { hpt: 22 }
+    if (rowStyles[idx] === 'grandTotal') return { hpt: 25 }
+    return { hpt: 18 }
+  })
+
+  // Merge cells for remesa number header (A2:C2)
+  ws['!merges'] = ws['!merges'] || []
+  ws['!merges'].push({ s: { r: 1, c: 0 }, e: { r: 1, c: 2 } })
 
   const sheetName = `Remesa ${String(remesa.remesa_number).padStart(2, '0')} ${remesa.remesa_suffix}`
   XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31))
