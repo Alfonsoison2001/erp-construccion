@@ -51,19 +51,38 @@ export function useProveedores(projectId) {
       return
     }
 
+    // First get remesa IDs for this project
+    const { data: remesasData, error: remErr } = await supabase
+      .from('remesas')
+      .select('id, remesa_number, remesa_suffix, date')
+      .eq('project_id', projectId)
+
+    if (remErr || !remesasData || remesasData.length === 0) {
+      setProveedores([])
+      setLoading(false)
+      return
+    }
+
+    const remesaIds = remesasData.map(r => r.id)
+    const remesaMap = Object.fromEntries(remesasData.map(r => [r.id, r]))
+
+    // Then get approved items for those remesas
     const { data, error } = await supabase
       .from('remesa_items')
-      .select('contractor_name, description, amount, vat_amount:iva_amount, total, is_approved, approved_at, remesa_id, remesas!inner(project_id, remesa_number, remesa_suffix, date)')
-      .eq('remesas.project_id', projectId)
+      .select('contractor_name, description, amount, vat_amount, total, is_approved, approved_at, remesa_id')
+      .in('remesa_id', remesaIds)
       .eq('is_approved', true)
 
     if (!error && data) {
-      const items = data.map(item => ({
-        ...item,
-        remesa_number: item.remesas?.remesa_number,
-        remesa_suffix: item.remesas?.remesa_suffix,
-        remesa_date: item.remesas?.date,
-      }))
+      const items = data.map(item => {
+        const remesa = remesaMap[item.remesa_id]
+        return {
+          ...item,
+          remesa_number: remesa?.remesa_number,
+          remesa_suffix: remesa?.remesa_suffix,
+          remesa_date: remesa?.date,
+        }
+      })
       setProveedores(groupByContractor(items))
     }
     setLoading(false)
