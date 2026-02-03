@@ -10,6 +10,7 @@ import Select from '../../components/Select'
 import { formatCurrency } from '../../lib/formatters'
 import { Plus, Trash2, Save, Send } from 'lucide-react'
 import { DEMO_CATEGORIES, DEMO_CONTRACTORS_ALL, DEMO_REMESAS_ALL, DEMO_REMESA_ITEMS_ALL, persistDemoData } from '../../lib/demoData'
+import { useBudgetVsPaid } from '../../hooks/useBudgetVsPaid'
 
 const DEMO_MODE = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'https://your-project.supabase.co'
 
@@ -301,6 +302,8 @@ export default function RemesaForm() {
     }
   }
 
+  const { getBudgetInfo } = useBudgetVsPaid(currentProject?.id)
+
   const categoryOptions = categories.map(c => ({ value: c.id, label: c.name }))
   const contractorOptions = contractors.map(c => ({ value: c.id, label: c.name }))
   const vatOptions = [
@@ -347,6 +350,7 @@ export default function RemesaForm() {
         contractors={contractorOptions}
         vatOptions={vatOptions}
         getConceptsForCategory={getConceptsForCategory}
+        getBudgetInfo={getBudgetInfo}
         onAdd={() => setItemsA(prev => [...prev, emptyItem('A')])}
         onUpdate={(idx, field, val) => updateLineItem('A', idx, field, val)}
         onRemove={(idx) => removeLineItem('A', idx)}
@@ -362,6 +366,7 @@ export default function RemesaForm() {
         contractors={contractorOptions}
         vatOptions={vatOptions}
         getConceptsForCategory={getConceptsForCategory}
+        getBudgetInfo={getBudgetInfo}
         onAdd={() => setItemsB(prev => [...prev, emptyItem('B')])}
         onUpdate={(idx, field, val) => updateLineItem('B', idx, field, val)}
         onRemove={(idx) => removeLineItem('B', idx)}
@@ -382,7 +387,7 @@ export default function RemesaForm() {
   )
 }
 
-function SectionTable({ title, section, items, total, categories, contractors, vatOptions, getConceptsForCategory, onAdd, onUpdate, onRemove }) {
+function SectionTable({ title, section, items, total, categories, contractors, vatOptions, getConceptsForCategory, getBudgetInfo, onAdd, onUpdate, onRemove }) {
   return (
     <Card className="mb-6">
       <CardHeader className="flex items-center justify-between">
@@ -404,6 +409,9 @@ function SectionTable({ title, section, items, total, categories, contractors, v
               <th className="px-2 py-2 text-center font-medium text-gray-500 w-20">IVA</th>
               <th className="px-2 py-2 text-right font-medium text-gray-500 w-24">IVA $</th>
               <th className="px-2 py-2 text-right font-medium text-gray-500 w-28">Total</th>
+              <th className="px-2 py-2 text-right font-medium text-gray-500 w-28">Ppto</th>
+              <th className="px-2 py-2 text-right font-medium text-gray-500 w-28">Pagado</th>
+              <th className="px-2 py-2 text-right font-medium text-gray-500 w-28">Disponible</th>
               <th className="px-2 py-2 text-left font-medium text-gray-500">Banco</th>
               <th className="px-2 py-2 text-left font-medium text-gray-500">CLABE</th>
               <th className="px-2 py-2 w-8"></th>
@@ -490,6 +498,14 @@ function SectionTable({ title, section, items, total, categories, contractors, v
                   <td className="px-2 py-1.5 text-right text-xs font-medium">
                     {formatCurrency(item.total)}
                   </td>
+                  {(() => {
+                    const info = item.category_id ? getBudgetInfo(item.category_id, item.concept_id) : null
+                    return <>
+                      <td className="px-2 py-1.5 text-right text-xs text-gray-600">{info ? formatCurrency(info.budget_total) : ''}</td>
+                      <td className="px-2 py-1.5 text-right text-xs text-gray-600">{info ? formatCurrency(info.paid_total) : ''}</td>
+                      <td className={'px-2 py-1.5 text-right text-xs font-medium ' + (info ? (info.available >= 0 ? 'text-green-600' : 'text-red-600') : '')}>{info ? formatCurrency(info.available) : ''}</td>
+                    </>
+                  })()}
                   <td className="px-2 py-1.5">
                     <input
                       value={item.bank}
@@ -519,7 +535,7 @@ function SectionTable({ title, section, items, total, categories, contractors, v
             <tr className="bg-gray-50 font-medium">
               <td colSpan={8} className="px-2 py-2 text-right">Subtotal {title.split('.')[0]}:</td>
               <td className="px-2 py-2 text-right">{formatCurrency(total)}</td>
-              <td colSpan={3}></td>
+              <td colSpan={6}></td>
             </tr>
           </tfoot>
         </table>

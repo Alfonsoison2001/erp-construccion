@@ -10,6 +10,7 @@ import Modal from '../../components/Modal'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import { formatCurrency, formatDate, formatRemesaNumber } from '../../lib/formatters'
 import { Pencil, ArrowLeft, CheckCircle, Trash2 } from 'lucide-react'
+import { useBudgetVsPaid } from '../../hooks/useBudgetVsPaid'
 
 export default function RemesaDetail() {
   const { id } = useParams()
@@ -17,6 +18,7 @@ export default function RemesaDetail() {
   const { currentProject } = useProject()
   const { remesa, items, loading } = useRemesaDetail(id)
   const { deleteRemesa } = useRemesas(currentProject?.id)
+  const { getBudgetInfo } = useBudgetVsPaid(remesa?.project_id || currentProject?.id)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   if (loading) {
@@ -52,7 +54,7 @@ export default function RemesaDetail() {
           </div>
         </div>
         <div className="flex flex-wrap gap-3">
-          <RemesaExport remesa={remesa} items={items} />
+          <RemesaExport remesa={remesa} items={items} getBudgetInfo={getBudgetInfo} />
           <Button variant="secondary" onClick={() => navigate(`/remesas/${id}/editar`)}>
             <Pencil size={16} /> Editar
           </Button>
@@ -63,10 +65,10 @@ export default function RemesaDetail() {
       </div>
 
       {/* Section A */}
-      <SectionCard title="A. Transferencias Bancarias" items={sectionA} total={totalA} section="A" />
+      <SectionCard title="A. Transferencias Bancarias" items={sectionA} total={totalA} section="A" getBudgetInfo={getBudgetInfo} />
 
       {/* Section B */}
-      <SectionCard title="B. Cheques / Efectivo" items={sectionB} total={totalB} section="B" />
+      <SectionCard title="B. Cheques / Efectivo" items={sectionB} total={totalB} section="B" getBudgetInfo={getBudgetInfo} />
 
       {/* Total */}
       <Card className="mt-6">
@@ -114,7 +116,7 @@ export default function RemesaDetail() {
   )
 }
 
-function SectionCard({ title, items, total, section }) {
+function SectionCard({ title, items, total, section, getBudgetInfo }) {
   if (items.length === 0) return null
 
   return (
@@ -123,7 +125,7 @@ function SectionCard({ title, items, total, section }) {
         <h3 className="font-semibold">{title}</h3>
       </CardHeader>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[700px]">
+        <table className="w-full text-sm min-w-[900px]">
           <thead>
             <tr className="bg-gray-50 border-b">
               <th className="px-4 py-2 text-left w-16">#</th>
@@ -134,35 +136,44 @@ function SectionCard({ title, items, total, section }) {
               <th className="px-4 py-2 text-right">Importe</th>
               <th className="px-4 py-2 text-right">IVA</th>
               <th className="px-4 py-2 text-right">Total</th>
+              <th className="px-4 py-2 text-right">Ppto</th>
+              <th className="px-4 py-2 text-right">Pagado</th>
+              <th className="px-4 py-2 text-right">Disponible</th>
               <th className="px-4 py-2 text-left">Banco</th>
               <th className="px-4 py-2 text-center w-16">Pagada</th>
             </tr>
           </thead>
           <tbody>
-            {items.map((item, idx) => (
-              <tr key={item.id} className="border-b border-gray-50 hover:bg-gray-50">
-                <td className="px-4 py-2 text-gray-400">
-                  {section}.{String(idx + 1).padStart(2, '0')}
-                </td>
-                <td className="px-4 py-2">{item.category_name || '—'}</td>
-                <td className="px-4 py-2">{item.concept_name || '—'}</td>
-                <td className="px-4 py-2">{item.contractor_name || '—'}</td>
-                <td className="px-4 py-2">{item.description}</td>
-                <td className="px-4 py-2 text-right">{formatCurrency(item.amount)}</td>
-                <td className="px-4 py-2 text-right">{formatCurrency(item.vat_amount)}</td>
-                <td className="px-4 py-2 text-right font-medium">{formatCurrency(item.total)}</td>
-                <td className="px-4 py-2">{item.bank || '—'}</td>
-                <td className="px-4 py-2 text-center">
-                  {item.is_approved && <CheckCircle size={16} className="text-success mx-auto" />}
-                </td>
-              </tr>
-            ))}
+            {items.map((item, idx) => {
+              const budgetInfo = item.category_id ? getBudgetInfo(item.category_id, item.concept_id) : null
+              return (
+                <tr key={item.id} className="border-b border-gray-50 hover:bg-gray-50">
+                  <td className="px-4 py-2 text-gray-400">
+                    {section}.{String(idx + 1).padStart(2, '0')}
+                  </td>
+                  <td className="px-4 py-2">{item.category_name || '—'}</td>
+                  <td className="px-4 py-2">{item.concept_name || '—'}</td>
+                  <td className="px-4 py-2">{item.contractor_name || '—'}</td>
+                  <td className="px-4 py-2">{item.description}</td>
+                  <td className="px-4 py-2 text-right">{formatCurrency(item.amount)}</td>
+                  <td className="px-4 py-2 text-right">{formatCurrency(item.vat_amount)}</td>
+                  <td className="px-4 py-2 text-right font-medium">{formatCurrency(item.total)}</td>
+                  <td className="px-4 py-2 text-right text-gray-600">{budgetInfo ? formatCurrency(budgetInfo.budget_total) : ''}</td>
+                  <td className="px-4 py-2 text-right text-gray-600">{budgetInfo ? formatCurrency(budgetInfo.paid_total) : ''}</td>
+                  <td className={'px-4 py-2 text-right font-medium ' + (budgetInfo ? (budgetInfo.available >= 0 ? 'text-green-600' : 'text-red-600') : '')}>{budgetInfo ? formatCurrency(budgetInfo.available) : ''}</td>
+                  <td className="px-4 py-2">{item.bank || '—'}</td>
+                  <td className="px-4 py-2 text-center">
+                    {item.is_approved && <CheckCircle size={16} className="text-success mx-auto" />}
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
           <tfoot>
             <tr className="bg-gray-50 font-medium">
               <td colSpan={7} className="px-4 py-2 text-right">Subtotal:</td>
               <td className="px-4 py-2 text-right">{formatCurrency(total)}</td>
-              <td colSpan={2}></td>
+              <td colSpan={5}></td>
             </tr>
           </tfoot>
         </table>

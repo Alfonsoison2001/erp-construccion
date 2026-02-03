@@ -323,7 +323,7 @@ export function parseRemesaHistoricoExcel(file) {
   })
 }
 
-export function exportRemesaToExcel(remesa, items, project) {
+export function exportRemesaToExcel(remesa, items, project, getBudgetInfo) {
   const wb = XLSX.utils.book_new()
 
   const sectionA = items.filter(i => i.section === 'A').sort((a, b) => a.line_number - b.line_number)
@@ -342,7 +342,8 @@ export function exportRemesaToExcel(remesa, items, project) {
   // Column headers
   rows.push([
     '#', 'CATEGORÍA', 'CONCEPTO', 'NOMBRE CONTRATISTA', 'PARTIDA',
-    'IMPORTE', 'IVA', 'TOTAL', 'TIPO DE PAGO', 'BANCO',
+    'IMPORTE', 'IVA', 'TOTAL', 'PRESUPUESTO', 'PAGADO', 'DISPONIBLE',
+    'TIPO DE PAGO', 'BANCO',
     'No. DE CUENTA', 'CLABE INTERBANCARIA', 'NOTAS'
   ])
 
@@ -354,6 +355,7 @@ export function exportRemesaToExcel(remesa, items, project) {
   let totalA = 0
   sectionA.forEach((item, idx) => {
     totalA += Number(item.total) || 0
+    const info = getBudgetInfo ? getBudgetInfo(item.category_id, item.concept_id) : null
     rows.push([
       `A.${String(idx + 1).padStart(2, '0')}`,
       item.category_name || '',
@@ -363,6 +365,9 @@ export function exportRemesaToExcel(remesa, items, project) {
       Number(item.amount) || 0,
       Number(item.vat_amount) || 0,
       Number(item.total) || 0,
+      info ? info.budget_total : '',
+      info ? info.paid_total : '',
+      info ? info.available : '',
       item.payment_type || 'transferencia',
       item.bank || '',
       item.account_number || '',
@@ -380,6 +385,7 @@ export function exportRemesaToExcel(remesa, items, project) {
   let totalB = 0
   sectionB.forEach((item, idx) => {
     totalB += Number(item.total) || 0
+    const info = getBudgetInfo ? getBudgetInfo(item.category_id, item.concept_id) : null
     rows.push([
       `B.${String(idx + 1).padStart(2, '0')}`,
       item.category_name || '',
@@ -389,6 +395,9 @@ export function exportRemesaToExcel(remesa, items, project) {
       Number(item.amount) || 0,
       Number(item.vat_amount) || 0,
       Number(item.total) || 0,
+      info ? info.budget_total : '',
+      info ? info.paid_total : '',
+      info ? info.available : '',
       item.payment_type || '',
       item.bank || '',
       item.account_number || '',
@@ -411,7 +420,8 @@ export function exportRemesaToExcel(remesa, items, project) {
   // Set column widths
   ws['!cols'] = [
     { wch: 6 }, { wch: 22 }, { wch: 22 }, { wch: 25 }, { wch: 30 },
-    { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 15 },
+    { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 },
+    { wch: 14 }, { wch: 15 },
     { wch: 16 }, { wch: 20 }, { wch: 20 }
   ]
 

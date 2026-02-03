@@ -5,7 +5,7 @@ import Button from '../../components/Button'
 import Input from '../../components/Input'
 import Modal from '../../components/Modal'
 import Table from '../../components/Table'
-import { Plus, Pencil, Trash2, Users } from 'lucide-react'
+import { Plus, Pencil, Trash2, Users, Download } from 'lucide-react'
 import { DEMO_CONTRACTORS_ALL } from '../../lib/demoData'
 
 const DEMO_MODE = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'https://your-project.supabase.co'
@@ -14,6 +14,7 @@ export default function ContractorsManager({ projectId }) {
   const [contractors, setContractors] = useState([])
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState(null)
+  const [importing, setImporting] = useState(false)
 
   useEffect(() => { fetchContractors() }, [projectId])
 
@@ -71,13 +72,102 @@ export default function ContractorsManager({ projectId }) {
     fetchContractors()
   }
 
+  async function importFromRemesas() {
+    if (DEMO_MODE) {
+      alert('Importación no disponible en modo demo')
+      return
+    }
+    setImporting(true)
+    try {
+      // Get all remesas for this project
+      const { data: remesas, error: remErr } = await supabase
+        .from('remesas')
+        .select('id')
+        .eq('project_id', projectId)
+
+      if (remErr || !remesas?.length) {
+        alert('No se encontraron remesas para este proyecto')
+        setImporting(false)
+        return
+      }
+
+      const remesaIds = remesas.map(r => r.id)
+
+      // Get unique contractor names and their bank info from remesa_items
+      const { data: items, error: itemErr } = await supabase
+        .from('remesa_items')
+        .select('contractor_name, bank, clabe, account_number')
+        .in('remesa_id', remesaIds)
+        .not('contractor_name', 'is', null)
+
+      if (itemErr || !items?.length) {
+        alert('No se encontraron contratistas en las remesas')
+        setImporting(false)
+        return
+      }
+
+      // Get existing contractor names to avoid duplicates
+      const existingNames = new Set(contractors.map(c => c.name?.toLowerCase().trim()))
+
+      // Group by contractor name and get most recent bank info
+      const byName = {}
+      items.forEach(item => {
+        const name = item.contractor_name?.trim()
+        if (!name) return
+        if (existingNames.has(name.toLowerCase())) return // Skip if already exists
+
+        if (!byName[name]) {
+          byName[name] = { name, bank: '', clabe: '', account_number: '' }
+        }
+        // Take bank info if available (later entries overwrite)
+        if (item.bank) byName[name].bank = item.bank
+        if (item.clabe) byName[name].clabe = item.clabe
+        if (item.account_number) byName[name].account_number = item.account_number
+      })
+
+      const toInsert = Object.values(byName).map(c => ({
+        ...c,
+        project_id: projectId
+      }))
+
+      if (toInsert.length === 0) {
+        alert('Todos los contratistas ya están en el catálogo')
+        setImporting(false)
+        return
+      }
+
+      const { error: insertErr } = await supabase
+        .from('contractors')
+        .insert(toInsert)
+
+      if (insertErr) {
+        console.error('Error inserting contractors:', insertErr)
+        alert('Error al importar: ' + insertErr.message)
+        setImporting(false)
+        return
+      }
+
+      alert(`Se importaron ${toInsert.length} contratista(s)`)
+      fetchContractors()
+    } catch (err) {
+      console.error('Import error:', err)
+      alert('Error al importar contratistas')
+    }
+    setImporting(false)
+  }
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
         <p className="text-sm text-gray-500">{contractors.length} contratista(s)</p>
-        <Button onClick={() => { setEditing(null); setShowForm(true) }}>
-          <Plus size={16} /> Nuevo Contratista
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={importFromRemesas} disabled={importing}>
+            <Download size={16} /> {importing ? 'Importando...' : 'Importar desde Remesas'}
+          </Button>
+          <Button onClick={() => { setEditing(null); setShowForm(true) }}>
+            <Plus size={16} /> Nuevo Contratista
+          </Button>
+        </div>
       </div>
 
       <Card>
