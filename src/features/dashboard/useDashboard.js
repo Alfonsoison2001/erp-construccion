@@ -95,20 +95,134 @@ export function useDashboard(projectId) {
       return
     }
 
-    const [budgetRes, remesasRes] = await Promise.all([
-      supabase
-        .from('budget_vs_paid')
-        .select('*')
-        .eq('project_id', projectId),
-      supabase
-        .from('remesas')
-        .select('*, profiles:created_by(full_name)')
-        .eq('project_id', projectId)
-        .order('remesa_number', { ascending: false }),
-    ])
+    try {
+      const [budgetRes, paidRes, remesasRes] = await Promise.all([
+        supabase
+          .from('budget_items')
+          .select('id, category_id, category_name, concept_id, concept_name, total')
+          .eq('project_id', projectId),
+        supabase
+          .from('remesa_items')
+          .select('id, category_id, category_name, concept_id, concept_name, total, is_approved, remesa_id, remesas!inner(project_id)')
+          .eq('is_approved', true)
+          .eq('remesas.project_id', projectId),
+        supabase
+          .from('remesas')
+          .select('*, profiles:created_by(full_name)')
+          .eq('project_id', projectId)
+          .order('remesa_number', { ascending: false }),
+      ])
 
-    setBudgetData(budgetRes.data || [])
-    setRemesas(remesasRes.data || [])
+      if (budgetRes.error) console.warn('Dashboard: budget_items query failed', budgetRes.error)
+      if (paidRes.error) console.warn('Dashboard: remesa_items query failed', paidRes.error)
+      if (remesasRes.error) console.warn('Dashboard: remesas query failed', remesasRes.error)
+
+      const budgetItems = budgetRes.data || []
+      const paidItems = paidRes.data || []
+
+      // Aggregate budget by category
+      const budgetByCategory = {}
+      budgetItems.forEach(item => {
+        const key = item.category_id || item.category_name || 'unknown'
+        if (!budgetByCategory[key]) {
+          budgetByCategory[key] = {
+            category_id: item.category_id,
+            category_name: item.category_name,
+            budget_total: 0,
+            concepts: {},
+          }
+        }
+        budgetByCategory[key].budget_total += Number(item.total) || 0
+        if (item.concept_id) {
+          const cKey = item.concept_id
+          if (!budgetByCategory[key].concepts[cKey]) {
+            budgetByCategory[key].concepts[cKey] = {
+              concept_id: item.concept_id,
+              concept_name: item.concept_name,
+              budget_total: 0,
+            }
+          }
+          budgetByCategory[key].concepts[cKey].budget_total += Number(item.total) || 0
+        }
+      })
+
+      // Aggregate paid by category
+      const paidByCategory = {}
+      paidItems.forEach(item => {
+        const key = item.category_id || item.category_name || 'Extras'
+        const catName = item.category_name || 'Extras'
+        if (!paidByCategory[key]) {
+          paidByCategory[key] = {
+            category_id: item.category_id || `cat-${catName.toLowerCase().replace(/\s+/g, '-')}`,
+            category_name: catName,
+            paid_total: 0,
+            concepts: {},
+          }
+        }
+        paidByCategory[key].paid_total += Number(item.total) || 0
+        if (item.concept_id) {
+          const cKey = item.concept_id
+          if (!paidByCategory[key].concepts[cKey]) {
+            paidByCategory[key].concepts[cKey] = {
+              concept_id: item.concept_id,
+              concept_name: item.concept_name,
+              paid_total: 0,
+            }
+          }
+          paidByCategory[key].concepts[cKey].paid_total += Number(item.total) || 0
+        }
+      })
+
+      // Merge budget + paid into unified rows
+      const allCategoryKeys = new Set([...Object.keys(budgetByCategory), ...Object.keys(paidByCategory)])
+      const merged = []
+
+      allCategoryKeys.forEach(key => {
+        const budget = budgetByCategory[key]
+        const paid = paidByCategory[key]
+        const catId = budget?.category_id || paid?.category_id || key
+        const catName = budget?.category_name || paid?.category_name || key
+
+        // Merge concepts
+        const allConceptKeys = new Set([
+          ...Object.keys(budget?.concepts || {}),
+          ...Object.keys(paid?.concepts || {}),
+        ])
+
+        if (allConceptKeys.size > 0) {
+          allConceptKeys.forEach(cKey => {
+            const bc = budget?.concepts?.[cKey]
+            const pc = paid?.concepts?.[cKey]
+            merged.push({
+              project_id: projectId,
+              category_id: catId,
+              category_name: catName,
+              concept_id: bc?.concept_id || pc?.concept_id,
+              concept_name: bc?.concept_name || pc?.concept_name,
+              budget_total: bc?.budget_total || 0,
+              paid_total: pc?.paid_total || 0,
+            })
+          })
+        } else {
+          merged.push({
+            project_id: projectId,
+            category_id: catId,
+            category_name: catName,
+            concept_id: null,
+            concept_name: null,
+            budget_total: budget?.budget_total || 0,
+            paid_total: paid?.paid_total || 0,
+          })
+        }
+      })
+
+      setBudgetData(merged)
+      setRemesas(remesasRes.data || [])
+    } catch (err) {
+      console.error('Dashboard: unexpected error fetching data', err)
+      setBudgetData([])
+      setRemesas([])
+    }
     setLoading(false)
   }, [projectId])
 
