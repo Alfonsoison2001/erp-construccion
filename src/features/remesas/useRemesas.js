@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '../../lib/supabase'
+import { supabase, onAuthReady } from '../../lib/supabase'
 import { useAuthContext } from '../auth/AuthContext'
 import { DEMO_REMESAS_ALL, DEMO_REMESA_ITEMS_ALL, persistDemoData } from '../../lib/demoData'
 
@@ -30,7 +30,12 @@ export function useRemesas(projectId) {
     setLoading(false)
   }, [projectId])
 
-  useEffect(() => { fetchRemesas() }, [fetchRemesas])
+  useEffect(() => {
+    fetchRemesas()
+    if (!DEMO_MODE) {
+      return onAuthReady(() => fetchRemesas())
+    }
+  }, [fetchRemesas])
 
   const getNextNumber = async () => {
     if (DEMO_MODE) {
@@ -113,7 +118,112 @@ export function useRemesas(projectId) {
     await updateRemesa(id, { status: 'enviada' })
   }
 
-  return { remesas, loading, createRemesa, updateRemesa, deleteRemesa, sendRemesa, refresh: fetchRemesas }
+  const bulkCreateRemesas = async (remesasWithItems) => {
+    const created = []
+    const now = new Date().toISOString()
+
+    if (DEMO_MODE) {
+      for (const r of remesasWithItems) {
+        const remesaId = 'rem-bulk-' + Date.now() + '-' + r.remesa_number
+        const newRemesa = {
+          id: remesaId,
+          project_id: projectId,
+          remesa_number: r.remesa_number,
+          remesa_suffix: r.remesa_suffix || 'MN',
+          date: r.date,
+          week_description: r.week_description || '',
+          total_amount: r.total_amount || 0,
+          status: 'pagada',
+          created_by: 'demo-user',
+          profiles: { full_name: 'Admin Demo' },
+        }
+        DEMO_REMESAS_ALL.push(newRemesa)
+
+        r.items.forEach((item, idx) => {
+          const sectionItems = r.items.slice(0, idx + 1).filter(it => it.section === item.section)
+          DEMO_REMESA_ITEMS_ALL.push({
+            ...item,
+            id: `ri-bulk-${Date.now()}-${r.remesa_number}-${idx}`,
+            remesa_id: remesaId,
+            line_number: sectionItems.length,
+            is_approved: true,
+            approved_at: now,
+            approved_by: 'demo-user',
+          })
+        })
+
+        created.push(newRemesa)
+      }
+      persistDemoData()
+      await fetchRemesas()
+      return created
+    }
+
+    // Production mode - skip already existing remesas
+    for (const r of remesasWithItems) {
+      const { data: existing } = await supabase
+        .from('remesas')
+        .select('id')
+        .eq('project_id', projectId)
+        .eq('remesa_number', r.remesa_number)
+        .eq('remesa_suffix', r.remesa_suffix || 'MN')
+        .maybeSingle()
+      if (existing) {
+        created.push(existing)
+        continue
+      }
+
+      const { data: newRemesa, error: remErr } = await supabase
+        .from('remesas')
+        .insert({
+          project_id: projectId,
+          remesa_number: r.remesa_number,
+          remesa_suffix: r.remesa_suffix || 'MN',
+          date: r.date,
+          week_description: r.week_description || '',
+          total_amount: r.total_amount || 0,
+          status: 'pagada',
+          created_by: user.id,
+        })
+        .select()
+        .single()
+      if (remErr) throw remErr
+
+      const itemRows = r.items.map((item, idx) => {
+        const sectionItems = r.items.slice(0, idx + 1).filter(it => it.section === item.section)
+        return {
+          remesa_id: newRemesa.id,
+          section: item.section,
+          line_number: sectionItems.length,
+          contractor_name: item.contractor_name,
+          description: item.description,
+          amount: item.amount,
+          vat_pct: item.vat_pct,
+          vat_amount: item.vat_amount,
+          total: item.total,
+          payment_type: item.payment_type,
+          bank: item.bank,
+          account_number: item.account_number,
+          clabe: item.clabe,
+          is_approved: true,
+          approved_at: now,
+          approved_by: user.id,
+        }
+      })
+
+      if (itemRows.length > 0) {
+        const { error: itemsErr } = await supabase.from('remesa_items').insert(itemRows)
+        if (itemsErr) throw itemsErr
+      }
+
+      created.push(newRemesa)
+    }
+
+    await fetchRemesas()
+    return created
+  }
+
+  return { remesas, loading, createRemesa, updateRemesa, deleteRemesa, sendRemesa, bulkCreateRemesas, refresh: fetchRemesas }
 }
 
 export function useRemesaDetail(remesaId) {
@@ -164,7 +274,12 @@ export function useRemesaDetail(remesaId) {
     setLoading(false)
   }, [remesaId])
 
-  useEffect(() => { fetchDetail() }, [fetchDetail])
+  useEffect(() => {
+    fetchDetail()
+    if (!DEMO_MODE) {
+      return onAuthReady(() => fetchDetail())
+    }
+  }, [fetchDetail])
 
   const addItem = async (item) => {
     if (DEMO_MODE) {

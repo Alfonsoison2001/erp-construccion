@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '../../lib/supabase'
+import { supabase, onAuthReady } from '../../lib/supabase'
 import { DEMO_REMESAS_ALL, DEMO_REMESA_ITEMS_ALL } from '../../lib/demoData'
 
 const DEMO_MODE = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'https://your-project.supabase.co'
@@ -69,7 +69,12 @@ export function useProveedores(projectId) {
     setLoading(false)
   }, [projectId])
 
-  useEffect(() => { fetchProveedores() }, [fetchProveedores])
+  useEffect(() => {
+    fetchProveedores()
+    if (!DEMO_MODE) {
+      return onAuthReady(() => fetchProveedores())
+    }
+  }, [fetchProveedores])
 
   return { proveedores, loading, refresh: fetchProveedores }
 }
